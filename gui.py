@@ -32,7 +32,6 @@ class UpdateThread(QThread):
         DEBUG_LOG("UpdateThread Initialized")
 
     def run(self):
-        self.stream = capture.VideoStream()
         DEBUG_LOG("UpdateThread Running")
         while True:
             # Change to stream.get_next_frame_raw() for raw Image from camera
@@ -65,7 +64,7 @@ class GUI(QWidget):
         self.lbl_image.resize(520, 360)
 
         self.lbl_keys = QLabel(self)
-        self.lbl_keys.setPixmap(QPixmap("keys.png").scaledToWidth(520))
+        self.lbl_keys.setPixmap(QPixmap("res/keys.png").scaledToWidth(520))
         self.lbl_keys.resize(520, 360)
 
         self.thread = UpdateThread(self)

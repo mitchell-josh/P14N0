@@ -1,5 +1,6 @@
 import cv2 as cv
 import gui
+import sys
 
 
 class FrameProcessor:
@@ -17,7 +18,7 @@ class VideoStream:
     def __init__(self):
         self.cap = cv.VideoCapture(0)
         if not self.cap.isOpened():
-            self.destroy()
+            sys.exit()
 
     """
         Returns raw image directly from the camera without processing

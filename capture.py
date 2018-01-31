@@ -16,6 +16,8 @@ class FrameProcessor:
 class VideoStream:
     def __init__(self):
         self.cap = cv.VideoCapture(0)
+        if not self.cap.isOpened():
+            self.destroy()
 
     """
         Returns raw image directly from the camera without processing

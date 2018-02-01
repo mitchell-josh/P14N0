@@ -1,26 +1,33 @@
+import logging
 import sys
 
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtWidgets import QPushButton
-from PyQt5.QtWidgets import QVBoxLayout
-from PyQt5.QtWidgets import QHBoxLayout
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QLabel
 from PyQt5.QtCore import QThread
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtGui import QImage
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QImage
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QHBoxLayout
+from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QPlainTextEdit
+from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtWidgets import QWidget
 
 import capture
 
-DEBUG = True
+LOG_LEVEL = logging.DEBUG
 app = QApplication(sys.argv)
 
 
-def DEBUG_LOG(message):
-    if DEBUG:
-        print("[DEBUG] " + message)
+class LogTextEdit(logging.Handler):
+    def __init__(self, parent):
+        super().__init__()
+        self.widget = QPlainTextEdit(parent)
+        self.widget.setReadOnly(True)
+
+    def emit(self, record):
+        log_msg = self.format(record)
+        self.widget.appendPlainText(log_msg)
 
 
 class UpdateThread(QThread):
@@ -29,11 +36,19 @@ class UpdateThread(QThread):
     def __init__(self, parent=None):
         QThread.__init__(self, parent=parent)
         self.stream = capture.VideoStream()
-        DEBUG_LOG("UpdateThread Initialized")
+        self.is_running = True
+        logging.debug("UpdateThread Initialized")
 
     def run(self):
-        DEBUG_LOG("UpdateThread Running")
-        while True:
+        logging.debug("UpdateThread Running")
+
+        while self.is_running:
+            if self.stream.is_open() is False:
+                # Retry
+                logging.debug("Trying to open camera stream")
+                self.stream = capture.VideoStream()
+                continue
+
             # Change to stream.get_next_frame_raw() for raw Image from camera
             frame = self.stream.get_next_frame()
 
@@ -41,16 +56,19 @@ class UpdateThread(QThread):
             image = QImage(frame.data, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
             image = QPixmap.fromImage(image)
 
-            # TODO: make rescale size dynamic as gui gets stretched
+            # TODO: change rescale size dynamically as gui gets stretched
             rescaled_image = image.scaled(520, 360, Qt.KeepAspectRatio)
             self.pix_map_signal.emit(rescaled_image)
 
-        DEBUG_LOG("UpdateImage Thread out of infinite loop o.O?, u fucked up")
+        logging.debug("UpdateImage Thread out of loop")
 
     def stop(self):
+        self.is_running = False
         self.stream.destroy()
-        self.terminate()
-        DEBUG_LOG("UpdateImage Thread Stopped")
+
+    def __del__(self):
+        self.quit()
+        self.wait()
 
 
 class GUI(QWidget):
@@ -71,31 +89,32 @@ class GUI(QWidget):
         self.thread.pix_map_signal.connect(self.lbl_image.setPixmap)
         self.thread.start()
 
-        self.btn_exit = QPushButton("Exit")
-        self.btn_exit.clicked.connect(self.destroy)
+        logger = LogTextEdit(self)
+        logging.getLogger().addHandler(logger)
+        logger.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] - %(message)s", "%d/%m/%y %H:%M:%S"))
+        logging.getLogger().addHandler(logger)
+        logging.getLogger().setLevel(LOG_LEVEL)
 
         self.inner_layout.addWidget(self.lbl_image)
         self.inner_layout.addWidget(self.lbl_keys)
 
         self.layout.addLayout(self.inner_layout)
-        self.layout.addWidget(self.btn_exit)
+        self.layout.addWidget(logger.widget)
 
         self.setLayout(self.layout)
-        DEBUG_LOG("GUI Initialized")
+        logging.debug("GUI Initialized")
 
-    def run(self):
-        self.show()
-        app.exec_()
-        self.destroy()
-
-    def destroy(self):
-        self.thread.stop()
-        exit()
+    def closeEvent(self, event):
+        sys.exit(0)
+        # TODO: Fix self.thread.stop() for graceful shutdown
+        # self.thread.stop()
+        event.accept()
 
 
 def main():
     ui = GUI()
-    ui.run()
+    ui.show()
+    sys.exit(app.exec_())
 
 
 if __name__ == "__main__":

@@ -1,6 +1,5 @@
 import cv2 as cv
-import gui
-import sys
+import logging
 
 
 class FrameProcessor:
@@ -17,8 +16,8 @@ class FrameProcessor:
 class VideoStream:
     def __init__(self):
         self.cap = cv.VideoCapture(0)
-        if not self.cap.isOpened():
-            sys.exit()
+        if not self.is_open():
+            logging.error("Failed to open capture device")
 
     """
         Returns raw image directly from the camera without processing
@@ -39,9 +38,8 @@ class VideoStream:
         frame = frame_processor.frame
         return frame
 
+    def is_open(self):
+        return self.cap.isOpened()
+
     def destroy(self):
         self.cap.release()
-        gui.DEBUG_LOG("Capture Device Released")
-
-
-

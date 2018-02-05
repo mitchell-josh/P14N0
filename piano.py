@@ -1,7 +1,7 @@
 import logging
 
 import pygame
-from scikits.samplerate import resample
+from samplerate import resample
 
 SF2 = 'res/piano.sf2'
 MAX_OCTAVE = 7

@@ -1,5 +1,6 @@
-import cv2 as cv
 import logging
+
+import cv2 as cv
 
 
 class FrameProcessor:

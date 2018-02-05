@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QWidget
 
 import capture
+import piano
 
 LOG_LEVEL = logging.DEBUG
 app = QApplication(sys.argv)
@@ -65,10 +66,7 @@ class UpdateThread(QThread):
     def stop(self):
         self.is_running = False
         self.stream.destroy()
-
-    def __del__(self):
-        self.quit()
-        self.wait()
+        self.terminate()
 
 
 class GUI(QWidget):
@@ -102,12 +100,17 @@ class GUI(QWidget):
         self.layout.addWidget(logger.widget)
 
         self.setLayout(self.layout)
+
+        # Demo play notes, use in the ai class
+        self.piano = piano.Piano(4) # 4 - number of octaves
+        self.piano.play('C-1') # format: 'note-octave'
+
+        # self.piano.stop() call this in the ai when the user stops the gesture
+
         logging.debug("GUI Initialized")
 
     def closeEvent(self, event):
-        sys.exit(0)
-        # TODO: Fix self.thread.stop() for graceful shutdown
-        # self.thread.stop()
+        self.thread.stop()
         event.accept()
 
 

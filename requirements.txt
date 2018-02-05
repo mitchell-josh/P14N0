@@ -1,4 +1,6 @@
 numpy==1.14.0
 opencv-python==3.4.0.12
+pygame==1.9.3
 PyQt5==5.10
+scikits.samplerate==0.4.0.dev0
 sip==4.19.7
